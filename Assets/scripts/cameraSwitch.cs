@@ -2,38 +2,41 @@ using UnityEngine;
 
 public class cameraSwitch : MonoBehaviour
 {
-
-  public GameObject camera1;
+    public GameObject camera1;
     public GameObject camera2;
 
-  public Values values;
+    public Values values;
 
-   bool state =true;
-   
+    bool state = true;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         this.camera1.SetActive(state);
-         camera2.SetActive(!state);
+        camera2.SetActive(!state);
     }
 
-  void OnTriggerExit(Collider collider)
-  {
-    values.increaseSanity(10);
-    if (values.sanity >= 150)
+    void OnTriggerEnter(Collider other)
     {
-      values.setSanity();
+        if (other.CompareTag("Player"))
+        {
+            camera1.SetActive(true);
+            camera2.SetActive(false);
+        }
     }
-    state = !state;
-    camera2.SetActive(!state);
-    this.camera1.SetActive(state);
-  }
 
-    void OnTriggerEnter(Collider collider)
+    void OnTriggerExit(Collider other)
     {
-   this.camera1.SetActive(true);
-    camera2.SetActive(false);
-    }
+        if (other.CompareTag("Player"))
+        {
+            values.increaseSanity(10);
+            if (values.sanity >= 150)
+            {
+                values.setSanity();
+            }
 
+            state = !state;
+            camera1.SetActive(state);
+            camera2.SetActive(!state);
+        }
+    }
 }

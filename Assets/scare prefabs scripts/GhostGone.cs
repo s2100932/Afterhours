@@ -2,10 +2,13 @@ using UnityEngine;
 
 public class GhostGone : MonoBehaviour
 {
-   public GameObject ghost;
+    public GameObject ghost;
 
     void OnTriggerEnter(Collider other)
     {
-        ghost.SetActive(false);
+        if (other.CompareTag("Player"))
+        {
+            ghost.SetActive(false);
+        }
     }
 }

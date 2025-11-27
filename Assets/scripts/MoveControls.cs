@@ -1,4 +1,4 @@
-using UnityEditor.Experimental.GraphView;
+﻿using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 
 public class MoveControls : MonoBehaviour
@@ -6,30 +6,56 @@ public class MoveControls : MonoBehaviour
     Rigidbody rb;
     public Collider ColliderHit;
 
-    public float MoveSpeed = 7f;
-    private Animator animator; // <-- Add Animator reference
+    public float MoveSpeed = 15f;
+    public float SprintMultiplier = 2f;   // <-- NEW: Sprint speed multiplier
+    public KeyCode SprintKey = KeyCode.LeftShift;
+
+    private Animator animator;
+    public float rotationSpeed = 12f;
+    private Vector3 moveInput;
+
+    private float currentSpeed; // <-- NEW: actual speed used
 
     void Start()
     {
         rb = GetComponent<Rigidbody>();
-        animator = GetComponent<Animator>(); // <-- Initialize Animator
+        animator = GetComponent<Animator>();
+
+        currentSpeed = MoveSpeed;
     }
 
     void Update()
     {
         speedLimit();
 
-        // Set walking animation based on input
         float vert = Input.GetAxisRaw("Vertical");
         float hor = Input.GetAxisRaw("Horizontal");
-        animator.SetBool("isWalking", vert != 0 || hor != 0);
-        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) ||
-    Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D))
-{
-    Debug.Log("Key pressed!");
-}
 
+        moveInput = new Vector3(hor, 0, vert).normalized;
 
+        // Animation
+        animator.SetBool("isWalking", moveInput.magnitude > 0.1f);
+
+        // ----------------------------
+        // SPRINT LOGIC
+        // ----------------------------
+        if (Input.GetKey(SprintKey) && moveInput.magnitude > 0.1f)
+        {
+            currentSpeed = MoveSpeed * SprintMultiplier;      // Sprinting
+        }
+        else
+        {
+            currentSpeed = MoveSpeed;                         // Walking
+        }
+
+        // ----------------------------
+        // ROTATION
+        // ----------------------------
+        if (moveInput.magnitude > 0.1f)
+        {
+            Quaternion targetRot = Quaternion.LookRotation(moveInput, Vector3.up);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationSpeed * Time.deltaTime);
+        }
     }
 
     void FixedUpdate()
@@ -39,25 +65,22 @@ public class MoveControls : MonoBehaviour
 
     void Move()
     {
-        float VertMove = Input.GetAxisRaw("Vertical") * MoveSpeed;
-        float horMove = Input.GetAxisRaw("Horizontal") * MoveSpeed;
-        Vector3 moveDir = transform.forward * VertMove + transform.right * horMove;
-
-        if (moveDir.magnitude > 0.1f)
+        if (moveInput.magnitude > 0.1f)
         {
-            rb.AddForce(moveDir.normalized * MoveSpeed * 10f, ForceMode.Acceleration);
+            rb.AddForce(moveInput * currentSpeed * 10f, ForceMode.Acceleration);
         }
     }
 
     private void speedLimit()
     {
-        // Fix: use rb.velocity instead of rb.linearVelocity
-        Vector3 Flatvel = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        float maxSpeed = currentSpeed; // <-- Speed limit respects sprint
 
-        if (Flatvel.magnitude > MoveSpeed)
+        Vector3 flatVel = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
+
+        if (flatVel.magnitude > maxSpeed)
         {
-            Vector3 Limit = Flatvel.normalized * MoveSpeed;
-            rb.velocity = new Vector3(Limit.x, rb.velocity.y, Limit.z);
+            Vector3 limitedVel = flatVel.normalized * maxSpeed;
+            rb.linearVelocity = new Vector3(limitedVel.x, rb.linearVelocity.y, limitedVel.z);
         }
     }
 
